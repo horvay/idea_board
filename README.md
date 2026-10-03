@@ -4,6 +4,8 @@ A shared writing space for the TailNet: real-time collaborative documents,
 Claude built in (using this machine's Claude Code login), and automatic
 version history.
 
+![Idea Board: a shared document with two collaborators' cursors and the Claude panel](docs/screenshot.png)
+
 ## Run it
 
 ```sh
