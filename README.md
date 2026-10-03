@@ -6,6 +6,8 @@ version history.
 
 ![Idea Board: a shared document with two collaborators' cursors and the Claude panel](docs/screenshot.png)
 
+![The same view in dark mode](docs/screenshot-dark.png)
+
 ## Run it
 
 ```sh
