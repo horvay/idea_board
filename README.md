@@ -48,8 +48,10 @@ address out for 15 minutes.
 | `gate`   | Password gate on 127.0.0.1:5174 in front of the web server, for public visitors (see above). |
 | `claude` | The AI worker (`worker/ai-worker.ts`). It picks up requests from the Claude panel and runs them through the Claude Agent SDK, which uses the Claude Code login on this machine. |
 
-The AI worker uses Claude Fable 5.1 at medium effort. Override with
-`AI_MODEL` / `AI_EFFORT` (e.g. `AI_EFFORT=high bun run dev`).
+The AI worker uses Claude Fable 5.1. Pick the effort (low, medium or high)
+with the slider under the Claude chat box; it defaults to medium and each
+browser remembers its own setting. Override the model with `AI_MODEL`
+(e.g. `AI_MODEL=claude-opus-5-5 bun run dev`).
 
 ## How it works
 

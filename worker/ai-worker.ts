@@ -19,7 +19,6 @@ const CONVEX_URL = process.env.VITE_CONVEX_URL;
 if (!CONVEX_URL) throw new Error("VITE_CONVEX_URL is not set (run `bun run dev` once to create .env.local)");
 
 const MODEL = process.env.AI_MODEL || "claude-fable-5-1";
-const EFFORT = (process.env.AI_EFFORT || "medium") as "low" | "medium" | "high" | "xhigh" | "max";
 const MAX_CONCURRENT = 3;
 const INLINE_DOC_LIMIT = 60_000; // characters of markdown to include in the prompt
 const WORKSPACE = resolve(import.meta.dir, "../.ai-workspace");
@@ -171,7 +170,7 @@ async function runRequest(requestId: Id<"aiRequests">) {
     active.delete(requestId);
     return;
   }
-  console.log(`[ai] ${job.requesterName}: ${job.prompt.slice(0, 80)}`);
+  console.log(`[ai] ${job.requesterName} (${job.effort} effort): ${job.prompt.slice(0, 80)}`);
 
   const abort = new AbortController();
   const unsubscribe = convex.onUpdate(api.ai.status, { requestId }, (status) => {
@@ -207,7 +206,7 @@ async function runRequest(requestId: Id<"aiRequests">) {
       options: {
         systemPrompt: SYSTEM_PROMPT,
         model: MODEL,
-        effort: EFFORT,
+        effort: job.effort,
         cwd: WORKSPACE,
         settingSources: [],
         tools: ["WebSearch", "WebFetch"],
@@ -309,7 +308,7 @@ async function main() {
     queue = rows.map((r) => ({ _id: r._id, docId: r.docId }));
     pump();
   });
-  console.log(`[ai] worker ready (model: ${MODEL}, effort: ${EFFORT})`);
+  console.log(`[ai] worker ready (model: ${MODEL})`);
 }
 
 main().catch((err) => {

@@ -22,6 +22,33 @@ const SUGGESTIONS = [
 
 const SELECTION_SUGGESTIONS = ["Rewrite this", "Make it shorter", "Make it punchier", "Expand on this"];
 
+type Effort = NonNullable<Doc<"aiRequests">["effort"]>;
+const EFFORTS: Effort[] = ["low", "medium", "high"];
+const EFFORT_HINTS: Record<Effort, string> = {
+  low: "Quick answers for small edits",
+  medium: "A balance of speed and care",
+  high: "Slower, but thinks harder about bigger changes",
+};
+const EFFORT_KEY = "ideaboard.effort";
+
+/** The effort slider's position, remembered in this browser. */
+function useEffort() {
+  const [effort, setEffort] = useState<Effort>(() => {
+    try {
+      const saved = localStorage.getItem(EFFORT_KEY) as Effort | null;
+      return saved && EFFORTS.includes(saved) ? saved : "medium";
+    } catch {
+      return "medium";
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(EFFORT_KEY, effort);
+    } catch {}
+  }, [effort]);
+  return [effort, setEffort] as const;
+}
+
 export function AiPanel({
   docId,
   conversationStartedAt,
@@ -52,6 +79,7 @@ export function AiPanel({
   const [confirmUndo, setConfirmUndo] = useState<Id<"aiRequests"> | null>(null);
   const [ignoreSelection, setIgnoreSelection] = useState(false);
   const [showEarlier, setShowEarlier] = useState(false);
+  const [effort, setEffort] = useEffort();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -126,7 +154,7 @@ export function AiPanel({
     const sel = activeSelection || undefined;
     // The selection belongs to this message; don't silently reuse it.
     setIgnoreSelection(true);
-    await ask({ docId, userId: me._id, prompt: p, selection: sel });
+    await ask({ docId, userId: me._id, prompt: p, selection: sel, effort });
   };
 
   return (
@@ -192,6 +220,7 @@ export function AiPanel({
                   <div className="flex items-baseline gap-2 text-xs text-muted">
                     <span className="font-medium text-ink-2">{author?.name ?? "Someone"}</span>
                     {clockTime(r._creationTime)}
+                    {r.effort && <span className="capitalize">· {r.effort} effort</span>}
                   </div>
                   {r.selection && (
                     <div className="mt-1 line-clamp-2 border-l-2 border-line-strong pl-2 text-xs text-muted">
@@ -337,6 +366,20 @@ export function AiPanel({
             </button>
           </div>
         </div>
+        <label className="mt-2 flex items-center gap-3 px-1 text-xs text-muted" title={EFFORT_HINTS[effort]}>
+          <span className="shrink-0">Effort</span>
+          <input
+            type="range"
+            min={0}
+            max={EFFORTS.length - 1}
+            step={1}
+            value={EFFORTS.indexOf(effort)}
+            onChange={(e) => setEffort(EFFORTS[Number(e.target.value)])}
+            aria-valuetext={effort}
+            className="h-1 min-w-0 flex-1 cursor-pointer accent-ai"
+          />
+          <span className="w-14 shrink-0 text-right font-medium text-ink-2 capitalize">{effort}</span>
+        </label>
       </div>
     </div>
   );

@@ -19,6 +19,9 @@ export const aiStatus = v.union(
   v.literal("cancelled"),
 );
 
+// How hard Claude thinks before answering; picked with the slider in the Claude panel.
+export const aiEffort = v.union(v.literal("low"), v.literal("medium"), v.literal("high"));
+
 export default defineSchema({
   users: defineTable({
     name: v.string(),
@@ -67,6 +70,8 @@ export default defineSchema({
     prompt: v.string(),
     selection: v.optional(v.string()),
     requestedBy: v.id("users"),
+    // Missing on requests made before the effort slider existed.
+    effort: v.optional(aiEffort),
     status: aiStatus,
     response: v.string(),
     // Short human-readable log of what Claude is doing ("Reading the document").
