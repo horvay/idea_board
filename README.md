@@ -140,3 +140,7 @@ STT_MODEL=base.en bun run dev             # ...then run with it
 Any [whisper.cpp model](https://huggingface.co/ggerganov/whisper.cpp) name
 works for `STT_MODEL`; `.en` models are English-only and more accurate for
 English. Recordings stop on their own after 10 minutes.
+
+Video Studio (`~/Work/vid_edit`) uses this same speech server for its
+dictation, so the model is only loaded once on the GPU. Stopping Idea Board
+turns dictation off there too.
