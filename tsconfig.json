@@ -13,5 +13,5 @@
     "resolveJsonModule": true,
     "types": ["bun"]
   },
-  "include": ["src", "shared", "worker", "gate", "vite.config.ts"]
+  "include": ["src", "shared", "worker", "gate", "stt", "vite.config.ts"]
 }

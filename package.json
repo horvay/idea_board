@@ -4,12 +4,14 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -k -n convex,web,claude,gate -c blue,green,magenta,yellow \"bun run convex\" \"bun run web\" \"bun run worker\" \"bun run gate\"",
+    "dev": "concurrently -k -n convex,web,claude,gate,stt -c blue,green,magenta,yellow,cyan \"bun run convex\" \"bun run web\" \"bun run worker\" \"bun run gate\" \"bun run stt\"",
     "convex": "convex dev --tail-logs disable",
     "web": "vite",
     "worker": "bun worker/ai-worker.ts",
     "typecheck": "tsc -p . --noEmit && tsc -p convex --noEmit",
-    "gate": "bun gate/gate.ts"
+    "gate": "bun gate/gate.ts",
+    "stt": "bun stt/server.ts",
+    "stt:setup": "bash stt/setup.sh"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.3.286",

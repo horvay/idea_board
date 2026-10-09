@@ -18,8 +18,18 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { MicButton } from "../components/MicButton";
 import { cn } from "../lib/hooks";
+import { useDictation } from "../lib/useDictation";
 import { ASK_AI_EVENT, toggleList } from "./blocks";
+import {
+  DICTATE_EVENT,
+  hideDictationMarker,
+  insertDictation,
+  labelDictationMarker,
+  showDictationMarker,
+  textBeforeDictation,
+} from "./dictation";
 
 function useMarks(editor: Editor) {
   return useEditorState({
@@ -161,6 +171,8 @@ export function Toolbar({ editor, end }: { editor: Editor; end?: ReactNode }) {
         <Btn icon={ListOrdered} label="Numbered list" active={s.orderedList} onClick={() => toggleList(editor, "orderedList")} />
         <Btn icon={ListChecks} label="To-do list" active={s.taskList} onClick={() => toggleList(editor, "taskList")} />
         <Btn icon={Quote} label="Quote" active={s.blockquote} onClick={() => c().toggleBlockquote().run()} />
+        <Sep />
+        <DictateButton editor={editor} />
         {end && <div className="ml-auto flex shrink-0 items-center pl-2">{end}</div>}
       </div>
       {linkOpen && (
@@ -170,6 +182,26 @@ export function Toolbar({ editor, end }: { editor: Editor; end?: ReactNode }) {
       )}
     </div>
   );
+}
+
+/** Speak into the document at the cursor (also the /dictate command and ⌘⇧Space). */
+function DictateButton({ editor }: { editor: Editor }) {
+  const dictation = useDictation({
+    context: () => textBeforeDictation(editor),
+    onStart: () => showDictationMarker(editor),
+    onText: (text) => insertDictation(editor, text),
+    onEnd: () => hideDictationMarker(editor),
+  });
+  const { phase, seconds, toggle } = dictation;
+
+  useEffect(() => labelDictationMarker(editor, phase, seconds), [editor, phase, seconds]);
+
+  useEffect(() => {
+    window.addEventListener(DICTATE_EVENT, toggle);
+    return () => window.removeEventListener(DICTATE_EVENT, toggle);
+  }, [toggle]);
+
+  return <MicButton dictation={dictation} shortcut />;
 }
 
 export function SelectionMenu({ editor }: { editor: Editor }) {

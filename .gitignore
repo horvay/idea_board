@@ -6,3 +6,4 @@ dist
 .convex/
 .ai-workspace
 *.log
+.stt/

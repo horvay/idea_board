@@ -1,4 +1,5 @@
 import type { Editor, Range } from "@tiptap/core";
+import { DICTATE_EVENT } from "./dictation";
 import {
   Code2,
   Heading1,
@@ -7,6 +8,7 @@ import {
   List,
   ListChecks,
   ListOrdered,
+  Mic,
   Minus,
   Pilcrow,
   Quote,
@@ -73,6 +75,17 @@ export const BLOCKS: BlockItem[] = [
     run: (editor, range) => {
       chain(editor, range).run();
       window.dispatchEvent(new CustomEvent(ASK_AI_EVENT));
+    },
+  },
+  {
+    id: "dictate",
+    title: "Dictate",
+    hint: "Speak instead of typing",
+    icon: Mic,
+    keywords: "dictate dictation voice speak speech talk microphone mic transcribe",
+    run: (editor, range) => {
+      chain(editor, range).run();
+      window.dispatchEvent(new CustomEvent(DICTATE_EVENT));
     },
   },
   {

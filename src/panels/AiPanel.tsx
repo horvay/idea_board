@@ -1,11 +1,23 @@
 import type { Editor } from "@tiptap/core";
 import { useMutation, useQuery } from "convex/react";
-import { ArrowUp, Check, ChevronDown, CircleStop, MessageSquarePlus, Quote, RotateCcw, Sparkles, X } from "lucide-react";
+import {
+  ArrowUp,
+  Check,
+  ChevronDown,
+  CircleStop,
+  LoaderCircle,
+  MessageSquarePlus,
+  Quote,
+  RotateCcw,
+  Sparkles,
+  X,
+} from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 import { COMEDY_STYLES, type ComedyStyle } from "../../shared/comedy";
 import { Avatar, ClaudeAvatar } from "../components/Avatar";
+import { MicButton } from "../components/MicButton";
 import { Popover } from "../components/Popover";
 import { renderChatMarkdown } from "../lib/chatMarkdown";
 import { useMe } from "../lib/identity";
@@ -13,7 +25,8 @@ import { cn, useNow } from "../lib/hooks";
 import { selectionMarkdown } from "../lib/markdown";
 import { selectionPreview } from "../lib/plain";
 import { setPendingSelection } from "../editor/highlights";
-import { clockTime } from "../lib/time";
+import { clockTime, formatSeconds } from "../lib/time";
+import { useDictation, type Dictation } from "../lib/useDictation";
 
 const SUGGESTIONS = [
   "Continue writing",
@@ -110,6 +123,13 @@ export function AiPanel({
   const [comedyStyle, setComedyStyle] = useComedyStyle(docId);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const dictation = useDictation({
+    context: () => prompt,
+    onText: (text) => {
+      setPrompt((p) => (p.trim() ? `${p.trimEnd()} ${text}` : text));
+      inputRef.current?.focus();
+    },
+  });
 
   const userById = useMemo(() => new Map(users?.map((u) => [u._id, u]) ?? []), [users]);
   const workerOnline = !!worker && now - worker.lastSeen < 35_000;
@@ -370,6 +390,7 @@ export function AiPanel({
               </button>
             </div>
           )}
+          <DictationStatus dictation={dictation} />
           <div className="flex items-end gap-2 p-2">
             <textarea
               ref={inputRef}
@@ -380,6 +401,9 @@ export function AiPanel({
                 if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
                   e.preventDefault();
                   send(prompt);
+                } else if (e.key === " " && e.shiftKey && (e.ctrlKey || e.metaKey)) {
+                  e.preventDefault();
+                  dictation.toggle();
                 } else if (e.key === "Escape") {
                   e.preventDefault();
                   editor?.commands.focus();
@@ -389,6 +413,7 @@ export function AiPanel({
               aria-label="Message Claude"
               className="max-h-[200px] min-h-9 flex-1 resize-none overflow-hidden bg-transparent px-1.5 py-1.5 text-sm outline-none placeholder:text-muted"
             />
+            <MicButton dictation={dictation} shortcut className="rounded-xl" />
             <button
               onClick={() => send(prompt)}
               disabled={!prompt.trim()}
@@ -415,6 +440,35 @@ export function AiPanel({
         </label>
         <ComedyPicker value={comedyStyle} onChange={setComedyStyle} />
       </div>
+    </div>
+  );
+}
+
+/** What the microphone is doing, shown in the composer while dictating. */
+function DictationStatus({ dictation }: { dictation: Dictation }) {
+  const { phase, seconds } = dictation;
+  if (phase === "idle") return null;
+  return (
+    <div
+      aria-live="polite"
+      className={cn(
+        "mx-2 mt-2 flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-xs",
+        phase === "recording" ? "bg-danger/10 text-danger" : "bg-surface-2 text-ink-2",
+      )}
+    >
+      {phase === "transcribing" ? (
+        <LoaderCircle size={13} className="shrink-0 animate-spin" />
+      ) : (
+        <span className={cn("size-2 shrink-0 rounded-full bg-current", phase === "recording" && "animate-pulse")} />
+      )}
+      <span className="font-medium tabular-nums">
+        {phase === "recording"
+          ? `Listening ${formatSeconds(seconds)}`
+          : phase === "transcribing"
+            ? "Transcribing…"
+            : "Starting the microphone…"}
+      </span>
+      {phase !== "starting" && <span className="ml-auto text-muted">Esc to cancel</span>}
     </div>
   );
 }

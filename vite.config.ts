@@ -5,6 +5,8 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const convexUrl = env.VITE_CONVEX_URL || "http://127.0.0.1:3210";
+  // Dictation (stt/server.ts).
+  const sttUrl = `http://127.0.0.1:${env.STT_PORT || 5175}`;
   return {
     plugins: [react(), tailwindcss()],
     server: {
@@ -14,10 +16,12 @@ export default defineConfig(({ mode }) => {
       port: Number(env.PORT || 5173),
       strictPort: true,
       allowedHosts: true,
-      // The browser talks to Convex through this server, so only one port has
-      // to be reachable and the local Convex backend can stay on 127.0.0.1.
+      // The browser talks to Convex and the dictation server through this
+      // server, so only one port has to be reachable and they can stay on
+      // 127.0.0.1.
       proxy: {
         "/api": { target: convexUrl, ws: true, changeOrigin: true },
+        "/stt": { target: sttUrl },
       },
     },
     preview: {
@@ -26,6 +30,7 @@ export default defineConfig(({ mode }) => {
       allowedHosts: true,
       proxy: {
         "/api": { target: convexUrl, ws: true, changeOrigin: true },
+        "/stt": { target: sttUrl },
       },
     },
   };

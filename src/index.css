@@ -384,6 +384,62 @@ button {
   border-radius: 2px;
 }
 
+/* Where dictated words will land (editor/dictation.ts), and the dictation
+   button's ring, which grows with the microphone level. */
+.dictation-marker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  margin: 0 0.2em;
+  padding: 0 0.6em 0 0.5em;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
+  font-family: var(--font-sans);
+  font-size: 0.75em;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.7;
+  vertical-align: 0.12em;
+  white-space: nowrap;
+  user-select: none;
+}
+.dictation-marker::before {
+  content: "";
+  box-sizing: border-box;
+  width: 0.6em;
+  height: 0.6em;
+  border-radius: 50%;
+  background: currentColor;
+  animation: dictation-pulse 1.2s ease-in-out infinite;
+}
+.dictation-marker[data-phase="transcribing"] {
+  background: var(--surface-2);
+  color: var(--ink-2);
+}
+.dictation-marker[data-phase="transcribing"]::before {
+  width: 0.8em;
+  height: 0.8em;
+  background: none;
+  border: 1.5px solid currentColor;
+  border-right-color: transparent;
+  animation: dictation-spin 0.8s linear infinite;
+}
+@keyframes dictation-pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+@keyframes dictation-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.mic-live {
+  box-shadow: 0 0 0 calc(var(--level, 0) * 7px) color-mix(in srgb, var(--danger) 30%, transparent);
+  transition: box-shadow 80ms linear;
+}
+
 /* AI-generated markdown in the chat panel */
 .chat-md {
   font-size: 0.875rem;

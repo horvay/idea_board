@@ -11,6 +11,7 @@ import { EMPTY_DOC, schemaExtensions } from "../../shared/extensions";
 import { RemoteCursors, setRemoteCursors, type RemoteCursor } from "./cursors";
 import { Highlights } from "./highlights";
 import { SlashCommand } from "./SlashCommand";
+import { Dictation } from "./dictation";
 import { SelectionMenu } from "./Menus";
 
 type Props = {
@@ -82,6 +83,7 @@ function EditorInner({
       SlashCommand,
       RemoteCursors,
       Highlights,
+      Dictation,
       syncExtension,
     ],
     content: initialContent,

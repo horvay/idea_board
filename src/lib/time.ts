@@ -23,3 +23,8 @@ export function dayLabel(ts: number): string {
   if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
   return d.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
 }
+
+/** A duration as m:ss. */
+export function formatSeconds(s: number): string {
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
