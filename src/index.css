@@ -481,3 +481,13 @@ button {
 .toast-in {
   animation: toast-in 0.18s ease-out;
 }
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+.pop-in {
+  animation: pop-in 0.12s ease-out;
+}

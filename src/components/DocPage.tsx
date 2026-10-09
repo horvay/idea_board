@@ -23,9 +23,11 @@ import { flashRange } from "../editor/highlights";
 import { SESSION_ID, useMe } from "../lib/identity";
 import { cn, useMediaQuery, useNow } from "../lib/hooks";
 import { editorMarkdown } from "../lib/markdown";
+import { useCategories } from "../lib/categories";
 import { AiPanel } from "../panels/AiPanel";
 import { HistoryPanel } from "../panels/HistoryPanel";
 import { Avatar, ClaudeAvatar } from "./Avatar";
+import { CategoryPicker } from "./CategoryPicker";
 import { useShell } from "./Shell";
 import { useToast } from "./Toast";
 import { takeJustCreated } from "./useCreateDoc";
@@ -81,6 +83,9 @@ function DocView({ doc }: { doc: DocInfo }) {
   const leave = useMutation(api.presence.leave);
   const touch = useMutation(api.docs.touch);
   const setTrashed = useMutation(api.docs.setTrashed);
+  const setCategory = useMutation(api.docs.setCategory);
+  const { byId: categoryById, pathLabel } = useCategories();
+  const category = doc.categoryId ? categoryById.get(doc.categoryId) : undefined;
 
   const setPanel = useCallback((p: Panel) => {
     setPanelState(p);
@@ -202,6 +207,7 @@ function DocView({ doc }: { doc: DocInfo }) {
             )}
             aria-hidden={titleVisible}
           >
+            {category && <span className="text-muted">{pathLabel(category._id)} / </span>}
             {doc.title || "Untitled"}
           </div>
 
@@ -281,12 +287,20 @@ function DocView({ doc }: { doc: DocInfo }) {
               onCursor={onCursor}
               onEditor={setEditor}
               header={
-                <TitleField
-                  docId={docId}
-                  title={doc.title}
-                  editor={editor}
-                  onVisibleChange={setTitleVisible}
-                />
+                <>
+                  <div className="mb-2">
+                    <CategoryPicker
+                      value={category ? category._id : null}
+                      onChange={(categoryId) => setCategory({ docId, categoryId })}
+                    />
+                  </div>
+                  <TitleField
+                    docId={docId}
+                    title={doc.title}
+                    editor={editor}
+                    onVisibleChange={setTitleVisible}
+                  />
+                </>
               }
             />
           </div>

@@ -1,10 +1,12 @@
 import type { Editor } from "@tiptap/core";
 import { useMutation, useQuery } from "convex/react";
-import { ArrowUp, Check, CircleStop, MessageSquarePlus, Quote, RotateCcw, Sparkles, X } from "lucide-react";
+import { ArrowUp, Check, ChevronDown, CircleStop, MessageSquarePlus, Quote, RotateCcw, Sparkles, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
+import { COMEDY_STYLES, type ComedyStyle } from "../../shared/comedy";
 import { Avatar, ClaudeAvatar } from "../components/Avatar";
+import { Popover } from "../components/Popover";
 import { renderChatMarkdown } from "../lib/chatMarkdown";
 import { useMe } from "../lib/identity";
 import { cn, useNow } from "../lib/hooks";
@@ -49,6 +51,31 @@ function useEffort() {
   return [effort, setEffort] as const;
 }
 
+const comedyKey = (docId: Id<"docs">) => `ideaboard.comedy.${docId}`;
+
+function readComedyStyle(docId: Id<"docs">): ComedyStyle | null {
+  try {
+    const saved = localStorage.getItem(comedyKey(docId));
+    return COMEDY_STYLES.find((s) => s.id === saved)?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** The comedy style picked for this document, remembered in this browser. */
+function useComedyStyle(docId: Id<"docs">) {
+  const [state, setState] = useState(() => ({ docId, style: readComedyStyle(docId) }));
+  const style = state.docId === docId ? state.style : readComedyStyle(docId);
+  const setStyle = (next: ComedyStyle | null) => {
+    setState({ docId, style: next });
+    try {
+      if (next) localStorage.setItem(comedyKey(docId), next);
+      else localStorage.removeItem(comedyKey(docId));
+    } catch {}
+  };
+  return [style, setStyle] as const;
+}
+
 export function AiPanel({
   docId,
   conversationStartedAt,
@@ -80,6 +107,7 @@ export function AiPanel({
   const [ignoreSelection, setIgnoreSelection] = useState(false);
   const [showEarlier, setShowEarlier] = useState(false);
   const [effort, setEffort] = useEffort();
+  const [comedyStyle, setComedyStyle] = useComedyStyle(docId);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -154,7 +182,7 @@ export function AiPanel({
     const sel = activeSelection || undefined;
     // The selection belongs to this message; don't silently reuse it.
     setIgnoreSelection(true);
-    await ask({ docId, userId: me._id, prompt: p, selection: sel, effort });
+    await ask({ docId, userId: me._id, prompt: p, selection: sel, effort, comedyStyle: comedyStyle ?? undefined });
   };
 
   return (
@@ -221,6 +249,11 @@ export function AiPanel({
                     <span className="font-medium text-ink-2">{author?.name ?? "Someone"}</span>
                     {clockTime(r._creationTime)}
                     {r.effort && <span className="capitalize">· {r.effort} effort</span>}
+                    {r.comedyStyle && (
+                      <span className="truncate">
+                        · {COMEDY_STYLES.find((s) => s.id === r.comedyStyle)?.label}
+                      </span>
+                    )}
                   </div>
                   {r.selection && (
                     <div className="mt-1 line-clamp-2 border-l-2 border-line-strong pl-2 text-xs text-muted">
@@ -367,7 +400,7 @@ export function AiPanel({
           </div>
         </div>
         <label className="mt-2 flex items-center gap-3 px-1 text-xs text-muted" title={EFFORT_HINTS[effort]}>
-          <span className="shrink-0">Effort</span>
+          <span className="w-12 shrink-0">Effort</span>
           <input
             type="range"
             min={0}
@@ -380,7 +413,79 @@ export function AiPanel({
           />
           <span className="w-14 shrink-0 text-right font-medium text-ink-2 capitalize">{effort}</span>
         </label>
+        <ComedyPicker value={comedyStyle} onChange={setComedyStyle} />
       </div>
+    </div>
+  );
+}
+
+const COMEDY_HELP =
+  "Gives Claude a comedy-writing guide for one tradition (stand-up, sketch, satire), added to its instructions for your messages in this document. Pick None to turn it off.";
+
+/** Dropdown under the chat box for choosing a comedy style (or none). */
+function ComedyPicker({
+  value,
+  onChange,
+}: {
+  value: ComedyStyle | null;
+  onChange: (style: ComedyStyle | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLButtonElement>(null);
+  const current = COMEDY_STYLES.find((s) => s.id === value);
+  const pick = (style: ComedyStyle | null) => {
+    setOpen(false);
+    onChange(style);
+    ref.current?.focus();
+  };
+  const options = [
+    { id: null, label: "None", after: null, hint: "Claude writes normally." },
+    ...COMEDY_STYLES,
+  ];
+
+  return (
+    <div className="mt-1.5 flex items-center gap-3 px-1 text-xs text-muted">
+      <span className="w-12 shrink-0">Comedy</span>
+      <button
+        ref={ref}
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={`Comedy style: ${current?.label ?? "None"}`}
+        title={current ? `${current.label}, after ${current.after}. ${current.hint}\n\n${COMEDY_HELP}` : COMEDY_HELP}
+        className={cn(
+          "-mx-1.5 flex h-7 min-w-0 items-center gap-1 rounded-lg px-1.5 hover:bg-surface-2",
+          current ? "font-medium text-ink-2" : "hover:text-ink-2",
+        )}
+      >
+        <span className="truncate">{current ? `${current.label} (${current.after})` : "None"}</span>
+        <ChevronDown size={13} className="shrink-0 opacity-60" />
+      </button>
+      {open && (
+        <Popover anchor={ref} onClose={() => setOpen(false)} placement="top-start" className="w-72">
+          <div role="listbox" aria-label="Comedy style" className="scroll-thin max-h-[min(24rem,calc(100vh-6rem))] overflow-y-auto">
+            {options.map((o) => (
+              <button
+                key={o.id ?? "none"}
+                role="option"
+                aria-selected={o.id === value}
+                autoFocus={o.id === value}
+                onClick={() => pick(o.id)}
+                className="flex w-full items-start gap-2 rounded-lg px-2.5 py-1.5 text-left hover:bg-surface-2 focus-visible:bg-surface-2 focus-visible:outline-none"
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm">
+                    {o.label}
+                    {o.after && <span className="text-muted"> · {o.after}</span>}
+                  </span>
+                  <span className="block text-xs text-muted">{o.hint}</span>
+                </span>
+                {o.id === value && <Check size={15} className="mt-0.5 shrink-0 text-ink-2" />}
+              </button>
+            ))}
+          </div>
+        </Popover>
+      )}
     </div>
   );
 }
@@ -419,7 +524,9 @@ function UndoConfirm({
   const mine = editors?.includes(me._id);
   const whose = [...names.map((n) => `${n}'s`), ...(mine ? ["your"] : [])];
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => ref.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }), [editors]);
+  useEffect(() => {
+    ref.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [editors]);
   const list =
     whose.length <= 1 ? whose[0] : `${whose.slice(0, -1).join(", ")} and ${whose.at(-1)}`;
 

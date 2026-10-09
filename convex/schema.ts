@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { COMEDY_STYLES } from "../shared/comedy";
 
 export const versionKind = v.union(
   v.literal("initial"),
@@ -22,14 +23,31 @@ export const aiStatus = v.union(
 // How hard Claude thinks before answering; picked with the slider in the Claude panel.
 export const aiEffort = v.union(v.literal("low"), v.literal("medium"), v.literal("high"));
 
+// Optional comedy style for a request; picked from the dropdown in the Claude panel.
+export const aiComedyStyle = v.union(...COMEDY_STYLES.map((s) => v.literal(s.id)));
+
 export default defineSchema({
   users: defineTable({
     name: v.string(),
     color: v.string(),
   }),
 
+  // Sections that documents are filed under in the sidebar. A document is in
+  // at most one. Categories nest; deleting one moves its documents and
+  // subcategories up a level.
+  categories: defineTable({
+    name: v.string(),
+    color: v.string(),
+    // Missing for top-level categories.
+    parentId: v.optional(v.id("categories")),
+    // Position among its siblings, lowest first. Rewritten when people reorder.
+    order: v.number(),
+    createdBy: v.id("users"),
+  }).index("by_order", ["order"]),
+
   docs: defineTable({
     title: v.string(),
+    categoryId: v.optional(v.id("categories")),
     createdBy: v.id("users"),
     updatedAt: v.number(),
     lastEditedBy: v.optional(v.id("users")),
@@ -47,7 +65,9 @@ export default defineSchema({
     conversationStartedAt: v.optional(v.number()),
     // Start of the text, for previews on the home screen.
     snippet: v.optional(v.string()),
-  }).index("by_trashed_updated", ["trashed", "updatedAt"]),
+  })
+    .index("by_trashed_updated", ["trashed", "updatedAt"])
+    .index("by_category", ["categoryId"]),
 
   versions: defineTable({
     docId: v.id("docs"),
@@ -72,6 +92,7 @@ export default defineSchema({
     requestedBy: v.id("users"),
     // Missing on requests made before the effort slider existed.
     effort: v.optional(aiEffort),
+    comedyStyle: v.optional(aiComedyStyle),
     status: aiStatus,
     response: v.string(),
     // Short human-readable log of what Claude is doing ("Reading the document").

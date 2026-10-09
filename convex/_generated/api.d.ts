@@ -9,6 +9,7 @@
  */
 
 import type * as ai from "../ai.js";
+import type * as categories from "../categories.js";
 import type * as crons from "../crons.js";
 import type * as docs from "../docs.js";
 import type * as presence from "../presence.js";
@@ -25,6 +26,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   ai: typeof ai;
+  categories: typeof categories;
   crons: typeof crons;
   docs: typeof docs;
   presence: typeof presence;

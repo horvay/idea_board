@@ -85,7 +85,18 @@ function EditorInner({
       syncExtension,
     ],
     content: initialContent,
-    editorProps: { attributes: { class: "doc", spellcheck: "true" } },
+    editorProps: {
+      attributes: { class: "doc", spellcheck: "true" },
+      // Links open in a new tab. Done here rather than with the Link
+      // extension's openOnClick, whose window.open leaves the opener reachable.
+      handleClick: (view, _pos, event) => {
+        if (event.button !== 0) return false;
+        const link = (event.target as HTMLElement | null)?.closest("a");
+        if (!link?.href || !view.dom.contains(link)) return false;
+        window.open(link.href, "_blank", "noopener,noreferrer");
+        return true;
+      },
+    },
     onUpdate: ({ transaction }) => {
       // prosemirror-collab marks steps received from the server this way.
       if (transaction.getMeta("addToHistory") !== false) callbacks.current.onLocalEdit();

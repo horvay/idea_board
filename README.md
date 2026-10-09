@@ -53,6 +53,17 @@ with the slider under the Claude chat box; it defaults to medium and each
 browser remembers its own setting. Override the model with `AI_MODEL`
 (e.g. `AI_MODEL=claude-opus-5-5 bun run dev`).
 
+Claude's writing rules (no AI tells like puffery, em dashes or chatbot
+filler) live in `worker/writing-style.md` and are appended to its system
+prompt. The worker re-reads the file for every request, so edits apply
+right away.
+
+The "Comedy" dropdown under the chat box adds a comedy-writing guide to the
+system prompt for messages in that document: observational or confessional
+stand-up, Monty Python-style sketches, cringe comedy, media satire,
+mockumentary, or a deadpan political interview. The guides are vendored in
+`worker/comedy/` and remembered per document in each browser.
+
 ## How it works
 
 - **Live editing**: Tiptap editor synced through
@@ -65,6 +76,14 @@ browser remembers its own setting. Override the model with `AI_MODEL`
   they stream into everyone's editor without clobbering what people are
   typing. Each document keeps a Claude conversation until you hit
   "New chat".
+- **Categories**: documents can be filed under one category each, and
+  categories can nest. Create one with the folder button in the sidebar, with
+  "New subcategory" in a category's ⋯ menu, or by typing a new name in the
+  picker above a document's title. In the sidebar, drag documents between
+  sections; drag a section header onto the top or bottom edge of another to
+  reorder, or onto its middle to nest it. Double-click a header to rename it.
+  Home has filter chips that drill down into subcategories. Deleting a category
+  moves its documents and subcategories up a level.
 - **History**: a version is saved every minute when a document changed, before
   and after every Claude request, when you restore, and when you click
   "Save version". The History panel shows word-level diffs and can restore any

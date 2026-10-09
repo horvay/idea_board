@@ -16,6 +16,7 @@ export const list = query({
       _id: d._id,
       _creationTime: d._creationTime,
       title: d.title,
+      categoryId: d.categoryId ?? null,
       updatedAt: d.updatedAt,
       lastEditedBy: d.lastEditedBy,
       snippet: d.snippet ?? "",
@@ -34,6 +35,7 @@ export const get = query({
       _id: doc._id,
       _creationTime: doc._creationTime,
       title: doc.title,
+      categoryId: doc.categoryId ?? null,
       trashed: doc.trashed,
       updatedAt: doc.updatedAt,
       createdBy: doc.createdBy,
@@ -44,11 +46,18 @@ export const get = query({
 });
 
 export const create = mutation({
-  args: { userId: v.id("users"), title: v.optional(v.string()) },
-  handler: async (ctx, { userId, title }) => {
+  args: {
+    userId: v.id("users"),
+    title: v.optional(v.string()),
+    categoryId: v.optional(v.id("categories")),
+  },
+  handler: async (ctx, { userId, title, categoryId }) => {
     const now = Date.now();
+    // The category may have been deleted by someone else a moment ago.
+    const category = categoryId && (await ctx.db.get(categoryId));
     const docId = await ctx.db.insert("docs", {
       title: title ?? "",
+      categoryId: category ? category._id : undefined,
       createdBy: userId,
       updatedAt: now,
       lastEditedBy: userId,
@@ -97,6 +106,15 @@ export const touch = mutation({
         ? doc.pendingAuthors
         : [...doc.pendingAuthors, userId],
     });
+  },
+});
+
+/** Files a document under a category, or under none with `null`. Not an edit, so it leaves updatedAt alone. */
+export const setCategory = mutation({
+  args: { docId: v.id("docs"), categoryId: v.union(v.id("categories"), v.null()) },
+  handler: async (ctx, { docId, categoryId }) => {
+    if (categoryId && !(await ctx.db.get(categoryId))) throw new Error("That category no longer exists");
+    await ctx.db.patch(docId, { categoryId: categoryId ?? undefined });
   },
 });
 

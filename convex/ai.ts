@@ -5,7 +5,7 @@ import { ReplaceStep, type Transform } from "@tiptap/pm/transform";
 import { getDocSchema, markdownTransform, toMarkdown } from "../shared/markdown";
 import { prosemirrorSync } from "./sync";
 import { takeSnapshot } from "./snapshots";
-import { aiEffort } from "./schema";
+import { aiComedyStyle, aiEffort } from "./schema";
 
 const AI_CLIENT_ID = "claude";
 
@@ -20,8 +20,9 @@ export const ask = mutation({
     prompt: v.string(),
     selection: v.optional(v.string()),
     effort: v.optional(aiEffort),
+    comedyStyle: v.optional(aiComedyStyle),
   },
-  handler: async (ctx, { docId, userId, prompt, selection, effort }) => {
+  handler: async (ctx, { docId, userId, prompt, selection, effort, comedyStyle }) => {
     const doc = await ctx.db.get(docId);
     if (!doc) throw new Error("Document not found");
     return ctx.db.insert("aiRequests", {
@@ -30,6 +31,7 @@ export const ask = mutation({
       selection: selection?.trim() || undefined,
       requestedBy: userId,
       effort,
+      comedyStyle,
       status: "queued",
       response: "",
       activity: [],
@@ -155,6 +157,7 @@ export const claim = mutation({
       prompt: req.prompt,
       selection: req.selection,
       effort: req.effort ?? "medium",
+      comedyStyle: req.comedyStyle,
       requesterName: requester?.name ?? "Someone",
       title: doc.title,
       markdown: toMarkdown(node.toJSON()),
