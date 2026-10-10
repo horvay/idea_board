@@ -16,7 +16,7 @@ DIR="$ROOT/.stt"
 WHISPER_VERSION="${WHISPER_VERSION:-v1.9.5}"
 VULKAN_HEADERS_VERSION="${VULKAN_HEADERS_VERSION:-v1.4.357}"
 MODEL="${STT_MODEL:-small.en}"
-VAD_MODEL="silero-v5.1.2"
+VAD_MODEL="silero-v6.2.0"
 GPU="${STT_GPU:-1}"
 
 mkdir -p "$DIR/models"

@@ -5,8 +5,6 @@ import { checkReady, MAX_SECONDS, Recording, SpeechError, transcribe } from "./s
 export type DictationPhase = "idle" | "starting" | "recording" | "transcribing";
 
 type Options = {
-  /** The writing just before where the words will go. */
-  context: () => string;
   /** The microphone is on: show where the words will land. */
   onStart?: () => void;
   onText: (text: string) => void;
@@ -47,12 +45,12 @@ export function useDictation(options: Options) {
   }, []);
 
   const send = useCallback(
-    async (wav: Blob, context: string) => {
+    async (wav: Blob) => {
       setPhase("transcribing");
       const controller = new AbortController();
       request.current = controller;
       try {
-        const text = await transcribe(wav, context, controller.signal);
+        const text = await transcribe(wav, controller.signal);
         if (!mounted.current) return;
         if (text) opts.current.onText(text);
         else toast({ message: "Didn't catch any words." });
@@ -63,7 +61,7 @@ export function useDictation(options: Options) {
         const retry = () => {
           if (!mounted.current || phaseRef.current !== "idle") return;
           opts.current.onStart?.();
-          void send(wav, context);
+          void send(wav);
         };
         toast(
           {
@@ -86,7 +84,6 @@ export function useDictation(options: Options) {
     if (active === self.current) active = null;
     setPhase("transcribing");
     const attempt = attempts.current;
-    const context = opts.current.context();
     let audio: Awaited<ReturnType<Recording["finish"]>>;
     try {
       audio = await rec.finish();
@@ -103,7 +100,7 @@ export function useDictation(options: Options) {
       toast({ message: "Didn't hear anything. Check your microphone." });
       return;
     }
-    await send(audio.wav, context);
+    await send(audio.wav);
   }, [end, send, toast]);
   self.current.stop = () => void stop();
 

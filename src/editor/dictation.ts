@@ -75,12 +75,6 @@ export function labelDictationMarker(editor: Editor, phase: DictationPhase, seco
   el.textContent = phase === "recording" ? `Listening ${formatSeconds(seconds)}` : "Transcribing…";
 }
 
-/** The writing just before the marker (or cursor), as a hint for Whisper. */
-export function textBeforeDictation(editor: Editor, chars = 600) {
-  const pos = key.getState(editor.state)?.pos ?? editor.state.selection.to;
-  return editor.state.doc.textBetween(Math.max(0, pos - chars * 2), pos, "\n", " ").slice(-chars);
-}
-
 /** Replace the marker with the dictated words, spaced to fit the text around them. */
 export function insertDictation(editor: Editor, text: string) {
   if (editor.isDestroyed) return;

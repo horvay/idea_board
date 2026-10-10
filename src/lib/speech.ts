@@ -147,14 +147,10 @@ export async function checkReady(): Promise<void> {
   if (!status.ready) throw new SpeechError(status.error ?? OFFLINE);
 }
 
-/**
- * Turn speech into text. `context` is the writing just before where the words
- * will go, which helps Whisper spell names and match punctuation.
- */
-export async function transcribe(wav: Blob, context: string, signal?: AbortSignal): Promise<string> {
+/** Turn speech into text. */
+export async function transcribe(wav: Blob, signal?: AbortSignal): Promise<string> {
   const form = new FormData();
   form.append("audio", wav, "speech.wav");
-  if (context.trim()) form.append("context", context);
   let res: Response;
   try {
     res = await fetch("/stt/transcribe", { method: "POST", body: form, signal });

@@ -3,7 +3,7 @@
 // the browser on STT_PORT, which Vite proxies at /stt:
 //
 //   GET  /stt/status      -> { ready, model, error? }
-//   POST /stt/transcribe  multipart: audio (16 kHz WAV), context? -> { text }
+//   POST /stt/transcribe  multipart: audio (16 kHz WAV) -> { text }
 //
 // When dictation isn't set up it says so in /stt/status and keeps running,
 // because `bun run dev` stops everything as soon as one process exits.
@@ -17,7 +17,7 @@ const WHISPER_PORT = Number(process.env.STT_WHISPER_PORT || 5176);
 const MODEL = process.env.STT_MODEL || "small.en";
 const BIN = join(DIR, "whisper-server");
 const MODEL_FILE = join(DIR, "models", `ggml-${MODEL}.bin`);
-const VAD_FILE = join(DIR, "models", "ggml-silero-v5.1.2.bin");
+const VAD_FILE = join(DIR, "models", "ggml-silero-v6.2.0.bin");
 const MAX_UPLOAD = 40 * 1024 * 1024; // about 20 minutes of 16 kHz WAV
 const WHISPER = `http://127.0.0.1:${WHISPER_PORT}`;
 
@@ -58,8 +58,12 @@ function launch() {
     "--suppress-nst",
   ];
   // Voice activity detection skips the silences, which is faster and stops
-  // Whisper from inventing words for them.
-  if (existsSync(VAD_FILE)) args.push("--vad", "-vm", VAD_FILE);
+  // Whisper from inventing words for them ("you" for room noise). whisper.cpp's
+  // own defaults (0.5 threshold, splitting at 0.1 s pauses, 30 ms padding) cut
+  // quiet words and word edges; these keep them, like faster-whisper's.
+  if (existsSync(VAD_FILE)) {
+    args.push("--vad", "-vm", VAD_FILE, "-vt", "0.3", "-vsd", "2000", "-vp", "400");
+  }
   if (process.env.STT_GPU === "0") args.push("--no-gpu");
 
   const proc = Bun.spawn(args, { stdout: "pipe", stderr: "pipe" });
@@ -110,15 +114,14 @@ async function transcribe(req: Request) {
   const form = await req.formData().catch(() => null);
   const audio = form?.get("audio");
   if (!(audio instanceof Blob) || audio.size === 0) return json({ error: "No recording came through." }, 400);
-  // Whisper reads at most ~220 tokens of prompt; keep the end, nearest the words.
-  const context = String(form?.get("context") ?? "").slice(-600);
 
+  // No prompt: given the text around the cursor as a hint, Whisper sometimes
+  // wrote a paraphrase of that text instead of quiet or unclear speech.
   const body = new FormData();
   body.append("file", audio, "speech.wav");
   body.append("response_format", "json");
   body.append("temperature", "0");
   body.append("temperature_inc", "0.2");
-  if (context.trim()) body.append("prompt", context);
   const started = Date.now();
   const res = await fetch(`${WHISPER}/inference`, { method: "POST", body, signal: req.signal }).catch(() => null);
   const out = (await res?.json().catch(() => null)) as { text?: string; error?: string } | null;

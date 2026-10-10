@@ -103,10 +103,9 @@ mockumentary, or a deadpan political interview. The guides are vendored in
   The Claude chat box has the same button for dictating a message. The browser
   sends the audio to this machine, where Whisper `small.en` transcribes it on
   the GPU through Vulkan (about 14× faster than real time on the GTX 950,
-  using about 700 MB of its memory). The text just before the cursor goes to
-  Whisper as a prompt so names in the document come out spelled the same way.
-  Browsers only allow the microphone over HTTPS, so dictate through the
-  `ts.net` addresses rather than a plain `http://` one.
+  using about 700 MB of its memory). Browsers only allow the microphone over
+  HTTPS, so dictate through the `ts.net` addresses rather than a plain
+  `http://` one.
 - **History**: a version is saved every minute when a document changed, before
   and after every Claude request, when you restore, and when you click
   "Save version". The History panel shows word-level diffs and can restore any
@@ -140,6 +139,13 @@ STT_MODEL=base.en bun run dev             # ...then run with it
 Any [whisper.cpp model](https://huggingface.co/ggerganov/whisper.cpp) name
 works for `STT_MODEL`; `.en` models are English-only and more accurate for
 English. Recordings stop on their own after 10 minutes.
+
+Before Whisper hears a recording, Silero voice detection (v6.2.0, also
+downloaded by `stt:setup`) cuts out long silences, and a recording with no
+speech at all comes back empty instead of as an invented "you". Its settings
+in `stt/server.ts` are gentler than whisper.cpp's defaults, which dropped quiet
+words. Whisper isn't given the text around the cursor as a hint: with it, it
+sometimes wrote a paraphrase of the document in place of quiet speech.
 
 Video Studio (`~/Work/vid_edit`) uses this same speech server for its
 dictation, so the model is only loaded once on the GPU. Stopping Idea Board

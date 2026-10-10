@@ -28,7 +28,6 @@ import {
   insertDictation,
   labelDictationMarker,
   showDictationMarker,
-  textBeforeDictation,
 } from "./dictation";
 
 function useMarks(editor: Editor) {
@@ -187,7 +186,6 @@ export function Toolbar({ editor, end }: { editor: Editor; end?: ReactNode }) {
 /** Speak into the document at the cursor (also the /dictate command and ⌘⇧Space). */
 function DictateButton({ editor }: { editor: Editor }) {
   const dictation = useDictation({
-    context: () => textBeforeDictation(editor),
     onStart: () => showDictationMarker(editor),
     onText: (text) => insertDictation(editor, text),
     onEnd: () => hideDictationMarker(editor),

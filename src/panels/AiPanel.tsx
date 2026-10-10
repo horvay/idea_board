@@ -124,7 +124,6 @@ export function AiPanel({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const dictation = useDictation({
-    context: () => prompt,
     onText: (text) => {
       setPrompt((p) => (p.trim() ? `${p.trimEnd()} ${text}` : text));
       inputRef.current?.focus();
