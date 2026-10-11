@@ -6,25 +6,30 @@ import {
   Copy,
   Download,
   History,
+  MessagesSquare,
   MoreHorizontal,
   PanelLeft,
   Sparkles,
   Trash2,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
 import { useLocation } from "wouter";
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 import { CollabEditor, useEditorStats } from "../editor/CollabEditor";
 import { Toolbar } from "../editor/Menus";
 import { ASK_AI_EVENT } from "../editor/blocks";
+import { CHAT_QUOTE_EVENT, selectionQuote, type Quote } from "../editor/chatRefs";
 import type { RemoteCursor } from "../editor/cursors";
 import { flashRange } from "../editor/highlights";
+import { copyText } from "../lib/clipboard";
 import { SESSION_ID, useMe } from "../lib/identity";
 import { cn, useMediaQuery, useNow } from "../lib/hooks";
 import { editorMarkdown } from "../lib/markdown";
 import { useCategories } from "../lib/categories";
+import { chatPreview } from "../../shared/chat";
 import { AiPanel } from "../panels/AiPanel";
+import { ChatPanel, useChatUnread, type ChatMessage } from "../panels/ChatPanel";
 import { HistoryPanel } from "../panels/HistoryPanel";
 import { Avatar, ClaudeAvatar } from "./Avatar";
 import { CategoryPicker } from "./CategoryPicker";
@@ -34,12 +39,12 @@ import { takeJustCreated } from "./useCreateDoc";
 
 const ONLINE_MS = 30_000;
 const PANEL_KEY = "ideaboard.panel";
-type Panel = "ai" | "history" | null;
+type Panel = "ai" | "history" | "chat" | null;
 
 function storedPanel(): Panel {
   try {
     const v = localStorage.getItem(PANEL_KEY);
-    return v === "ai" || v === "history" ? v : null;
+    return v === "ai" || v === "history" || v === "chat" ? v : null;
   } catch {
     return null;
   }
@@ -74,10 +79,15 @@ function DocView({ doc }: { doc: DocInfo }) {
   const [panel, setPanelState] = useState<Panel>(storedPanel);
   const [editor, setEditor] = useState<Editor | null>(null);
   const [aiFocus, setAiFocus] = useState(0);
+  const [chatFocus, setChatFocus] = useState(0);
+  // What's being written in the chat box about, kept while the panel is closed.
+  const [chatQuote, setChatQuote] = useState<Quote | null>(null);
+  const [chatReplyTo, setChatReplyTo] = useState<Id<"chatMessages"> | null>(null);
   const [titleVisible, setTitleVisible] = useState(true);
 
   const online = useQuery(api.presence.online);
   const requests = useQuery(api.ai.listForDoc, { docId });
+  const messages = useQuery(api.chat.list, { docId });
   const users = useQuery(api.users.list);
   const heartbeat = useMutation(api.presence.heartbeat);
   const leave = useMutation(api.presence.leave);
@@ -97,6 +107,18 @@ function DocView({ doc }: { doc: DocInfo }) {
     setPanel("ai");
     setAiFocus((n) => n + 1);
   }, [setPanel]);
+  const openChat = useCallback(() => {
+    setPanel("chat");
+    setChatFocus((n) => n + 1);
+  }, [setPanel]);
+  const replyInChat = useCallback(
+    (id: Id<"chatMessages">) => {
+      setChatReplyTo(id);
+      openChat();
+    },
+    [openChat],
+  );
+  const { unread, lastRead } = useChatUnread(docId, messages, me._id, panel === "chat");
 
   // --- Presence ------------------------------------------------------------
   const cursorRef = useRef<{ anchor: number; head: number } | undefined>(undefined);
@@ -166,10 +188,49 @@ function DocView({ doc }: { doc: DocInfo }) {
     return () => window.removeEventListener(ASK_AI_EVENT, openAi);
   }, [openAi]);
 
+  // --- Chat: notify about messages, discuss the selection -----------------
+  useChatActivity({ messages, users, meId: me._id, panelOpen: panel === "chat", onReply: replyInChat });
+
+  useEffect(() => {
+    const discuss = () => {
+      const quote = editor && selectionQuote(editor);
+      if (quote) setChatQuote(quote);
+      openChat();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.altKey && !e.shiftKey && e.code === "KeyM") {
+        e.preventDefault();
+        discuss();
+      }
+    };
+    window.addEventListener(CHAT_QUOTE_EVENT, discuss);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener(CHAT_QUOTE_EVENT, discuss);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [editor, openChat]);
+
   const togglePanel = (p: Exclude<Panel, null>) => {
     if (panel === p) setPanel(null);
     else if (p === "ai") openAi();
+    else if (p === "chat") openChat();
     else setPanel(p);
+  };
+
+  const chat: ChatProps = {
+    docId,
+    editor,
+    messages,
+    users,
+    people,
+    typers: others,
+    quote: chatQuote,
+    onQuote: setChatQuote,
+    replyTo: chatReplyTo,
+    onReplyTo: setChatReplyTo,
+    lastRead,
+    focusSignal: chatFocus,
   };
 
   const moveToTrash = async () => {
@@ -220,6 +281,26 @@ function DocView({ doc }: { doc: DocInfo }) {
             ))}
           </div>
 
+          <button
+            onClick={() => togglePanel("chat")}
+            aria-label={unread ? `Chat, ${unread} unread` : "Chat"}
+            aria-pressed={panel === "chat"}
+            className={cn(
+              "relative flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium transition",
+              panel === "chat" ? "bg-surface-2 text-ink" : "text-ink-2 hover:bg-surface-2",
+            )}
+          >
+            <MessagesSquare size={16} />
+            <span className="hidden sm:inline">Chat</span>
+            {unread > 0 && panel !== "chat" && (
+              <span
+                key={unread}
+                className="badge-pop absolute -top-1 -right-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-accent px-1 text-[10px] leading-none font-bold text-bg ring-2 ring-bg"
+              >
+                {unread > 9 ? "9+" : unread}
+              </span>
+            )}
+          </button>
           <button
             onClick={() => togglePanel("ai")}
             aria-label="Claude"
@@ -318,13 +399,15 @@ function DocView({ doc }: { doc: DocInfo }) {
               editor={editor}
               requests={requests}
               aiFocus={aiFocus}
+              chat={chat}
+              overlay={false}
               onClose={() => setPanel(null)}
             />
           </aside>
         ) : (
           <>
-            <div className="fixed inset-0 z-40 bg-black/25" onClick={() => setPanel(null)} />
-            <aside className="fixed inset-y-0 right-0 z-50 w-[min(400px,100vw)] border-l border-line bg-surface shadow-float">
+            <div className="fade-in fixed inset-0 z-40 bg-black/25" onClick={() => setPanel(null)} />
+            <aside className="panel-slide-in fixed inset-y-0 right-0 z-50 w-[min(400px,100vw)] border-l border-line bg-surface shadow-float">
               <PanelBody
                 panel={panel}
                 docId={docId}
@@ -332,6 +415,8 @@ function DocView({ doc }: { doc: DocInfo }) {
                 editor={editor}
                 requests={requests}
                 aiFocus={aiFocus}
+                chat={chat}
+                overlay
                 onClose={() => setPanel(null)}
               />
             </aside>
@@ -389,6 +474,52 @@ function useClaudeActivity({
   }, [requests, users, meId, panelOpen, onOpen, toast]);
 }
 
+/** Pops up a toast when someone else writes in the chat while it's closed. */
+function useChatActivity({
+  messages,
+  users,
+  meId,
+  panelOpen,
+  onReply,
+}: {
+  messages: ChatMessage[] | undefined;
+  users: Doc<"users">[] | undefined;
+  meId: Id<"users">;
+  panelOpen: boolean;
+  onReply: (id: Id<"chatMessages">) => void;
+}) {
+  const toast = useToast();
+  const seen = useRef<Set<string> | null>(null);
+
+  useEffect(() => {
+    if (!messages) return;
+    // What was already there when the document opened isn't news.
+    if (!seen.current) {
+      seen.current = new Set(messages.map((m) => m._id));
+      return;
+    }
+    for (const m of messages) {
+      if (seen.current.has(m._id)) continue;
+      seen.current.add(m._id);
+      if (panelOpen || m.authorId === meId || m.deleted) continue;
+      const who = users?.find((u) => u._id === m.authorId)?.name ?? "Someone";
+      toast(
+        {
+          message: (
+            <>
+              <span className="font-semibold">{who}:</span> {chatPreview(m)}
+            </>
+          ),
+          action: { label: "Reply", run: () => onReply(m._id) },
+        },
+        8000,
+      );
+    }
+  }, [messages, users, meId, panelOpen, onReply, toast]);
+}
+
+type ChatProps = Omit<ComponentProps<typeof ChatPanel>, "overlay" | "onClose">;
+
 function PanelBody({
   panel,
   docId,
@@ -396,6 +527,8 @@ function PanelBody({
   editor,
   requests,
   aiFocus,
+  chat,
+  overlay,
   onClose,
 }: {
   panel: Exclude<Panel, null>;
@@ -404,19 +537,27 @@ function PanelBody({
   editor: Editor | null;
   requests: Doc<"aiRequests">[] | undefined;
   aiFocus: number;
+  chat: ChatProps;
+  overlay: boolean;
   onClose: () => void;
 }) {
-  return panel === "ai" ? (
-    <AiPanel
-      docId={docId}
-      conversationStartedAt={doc.conversationStartedAt}
-      editor={editor}
-      requests={requests}
-      focusSignal={aiFocus}
-      onClose={onClose}
-    />
-  ) : (
-    <HistoryPanel docId={docId} onClose={onClose} />
+  return (
+    <div key={panel} className="panel-in h-full">
+      {panel === "ai" ? (
+        <AiPanel
+          docId={docId}
+          conversationStartedAt={doc.conversationStartedAt}
+          editor={editor}
+          requests={requests}
+          focusSignal={aiFocus}
+          onClose={onClose}
+        />
+      ) : panel === "chat" ? (
+        <ChatPanel {...chat} overlay={overlay} onClose={onClose} />
+      ) : (
+        <HistoryPanel docId={docId} onClose={onClose} />
+      )}
+    </div>
   );
 }
 
@@ -526,25 +667,6 @@ function WordCount({ editor }: { editor: Editor | null }) {
       {stats.words.toLocaleString()} {stats.words === 1 ? "word" : "words"}
     </div>
   );
-}
-
-async function copyText(text: string): Promise<boolean> {
-  try {
-    if (window.isSecureContext && navigator.clipboard) {
-      await navigator.clipboard.writeText(text);
-      return true;
-    }
-  } catch {}
-  // The Clipboard API only exists over HTTPS; fall back to the old way.
-  const ta = document.createElement("textarea");
-  ta.value = text;
-  ta.style.position = "fixed";
-  ta.style.opacity = "0";
-  document.body.appendChild(ta);
-  ta.select();
-  const ok = document.execCommand("copy");
-  ta.remove();
-  return ok;
 }
 
 function MoreMenu({ editor, title, onTrash }: { editor: Editor | null; title: string; onTrash: () => void }) {

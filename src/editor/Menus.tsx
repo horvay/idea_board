@@ -9,6 +9,7 @@ import {
   List,
   ListChecks,
   ListOrdered,
+  MessageSquareQuote,
   Quote,
   Redo2,
   Sparkles,
@@ -22,6 +23,7 @@ import { MicButton } from "../components/MicButton";
 import { cn } from "../lib/hooks";
 import { useDictation } from "../lib/useDictation";
 import { ASK_AI_EVENT, toggleList } from "./blocks";
+import { CHAT_QUOTE_EVENT } from "./chatRefs";
 import {
   DICTATE_EVENT,
   hideDictationMarker,
@@ -202,6 +204,8 @@ function DictateButton({ editor }: { editor: Editor }) {
   return <MicButton dictation={dictation} shortcut />;
 }
 
+const DISCUSS_SHORTCUT = /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘⌥M" : "Ctrl+Alt+M";
+
 export function SelectionMenu({ editor }: { editor: Editor }) {
   const s = useMarks(editor);
   const [linkMode, setLinkMode] = useState(false);
@@ -219,8 +223,12 @@ export function SelectionMenu({ editor }: { editor: Editor }) {
         flip: { boundary },
         onHide: () => setLinkMode(false),
       }}
-      shouldShow={({ editor: e, state, from, to }) =>
-        from !== to && !e.isActive("codeBlock") && !state.selection.toJSON().type?.includes("node")
+      // Hidden once focus moves elsewhere, such as the Claude or chat box.
+      shouldShow={({ editor: e, element, view, state, from, to }) =>
+        (view.hasFocus() || element.contains(document.activeElement)) &&
+        from !== to &&
+        !e.isActive("codeBlock") &&
+        !state.selection.toJSON().type?.includes("node")
       }
       className="rounded-xl border border-line bg-surface font-sans shadow-float"
     >
@@ -234,6 +242,15 @@ export function SelectionMenu({ editor }: { editor: Editor }) {
             className="flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-ai hover:bg-ai-soft"
           >
             <Sparkles size={15} /> Ask Claude
+          </button>
+          <button
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => window.dispatchEvent(new CustomEvent(CHAT_QUOTE_EVENT))}
+            title={`Discuss in the chat (${DISCUSS_SHORTCUT})`}
+            aria-label="Discuss in the chat"
+            className="flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-ink-2 hover:bg-surface-2 hover:text-ink"
+          >
+            <MessageSquareQuote size={15} /> <span className="hidden sm:inline">Discuss</span>
           </button>
           <Sep />
           <Btn icon={Bold} label="Bold" active={s.bold} onClick={() => c().toggleBold().run()} />

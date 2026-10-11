@@ -89,6 +89,16 @@ mockumentary, or a deadpan political interview. The guides are vendored in
   they stream into everyone's editor without clobbering what people are
   typing. Each document keeps a Claude conversation until you hit
   "New chat".
+- **Chat**: the Chat panel is a conversation among everyone on a document.
+  To talk about a passage, select it and choose "Discuss" (or Ctrl+Alt+M),
+  or use "Quote the selection" above the chat box. While the chat is open,
+  quoted passages are tinted in the quoter's color. Hovering a message lights
+  up its passage, clicking the passage card scrolls the document to it, and
+  clicking a tinted passage finds its message. Quotes are found again by their
+  text as the document changes; once a passage is edited away, its card says
+  so. Hover a message to reply, copy or delete it (deleting can be undone).
+  On a phone, swipe a message right to reply. Messages show who's typing,
+  and unread ones get a badge on the Chat button and a toast.
 - **Categories**: documents can be filed under one category each, and
   categories can nest. Create one with the folder button in the sidebar, with
   "New subcategory" in a category's ⋯ menu, or by typing a new name in the

@@ -547,3 +547,276 @@ button {
 .pop-in {
   animation: pop-in 0.12s ease-out;
 }
+
+/* ------------------------------------------------------------------ */
+/* Chat (panels/ChatPanel.tsx, editor/chatRefs.ts)                     */
+/* ------------------------------------------------------------------ */
+
+/* Passages quoted in the chat, tinted in the quoter's color while the chat
+   is open; the message under the pointer deepens its passage's tint. */
+.chat-ref {
+  background: color-mix(in srgb, var(--c) 9%, transparent);
+  box-shadow: inset 0 -1.5px 0 color-mix(in srgb, var(--c) 45%, transparent);
+  border-radius: 2px;
+}
+.chat-ref.is-active {
+  background: color-mix(in srgb, var(--c) 24%, transparent);
+  box-shadow: inset 0 -2px 0 var(--c);
+  animation: chat-ref-in 0.25s ease-out;
+}
+@keyframes chat-ref-in {
+  from {
+    background: color-mix(in srgb, var(--c) 9%, transparent);
+  }
+}
+/* The passage quoted in the chat box. */
+.chat-ref-draft {
+  background: color-mix(in srgb, var(--c) 20%, transparent);
+  box-shadow: inset 0 -2px 0 var(--c);
+  border-radius: 2px;
+  animation: chat-ref-breathe 2.4s ease-in-out infinite;
+}
+@keyframes chat-ref-breathe {
+  50% {
+    background: color-mix(in srgb, var(--c) 12%, transparent);
+  }
+}
+/* A passage opened from the chat. */
+.chat-ref-flash {
+  border-radius: 3px;
+  animation: chat-ref-flash 2.6s ease-out forwards;
+}
+@keyframes chat-ref-flash {
+  0% {
+    background: transparent;
+    box-shadow: 0 0 0 0 transparent;
+  }
+  12%,
+  40% {
+    background: color-mix(in srgb, var(--c) 38%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 38%, transparent);
+  }
+  100% {
+    background: transparent;
+    box-shadow: 0 0 0 3px transparent;
+  }
+}
+
+/* A message arriving: rises from below and settles with a little overshoot,
+   growing from the sender's side. */
+@keyframes msg-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.9);
+  }
+  55% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.msg-in {
+  animation: msg-in 0.45s cubic-bezier(0.2, 0.9, 0.25, 1.2) both;
+}
+@keyframes jumbo-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) rotate(-12deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.18) rotate(4deg);
+  }
+  to {
+    transform: none;
+  }
+}
+.jumbo-in {
+  animation: jumbo-in 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+}
+
+/* Reply / copy / delete beside a bubble, on hover, keyboard focus, or a tap. */
+.msg-actions {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(3px) scale(0.92);
+  transition:
+    opacity 0.15s ease,
+    transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.3);
+}
+.msg:hover .msg-actions,
+.msg:focus-within .msg-actions,
+.msg.is-selected .msg-actions {
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+}
+@media (hover: none) {
+  .msg:hover:not(.is-selected) .msg-actions {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+/* A quoted passage inside a bubble. */
+.passage {
+  background: color-mix(in srgb, var(--c) 13%, transparent);
+  box-shadow: inset 3px 0 0 var(--c);
+  transition: background 0.15s ease;
+}
+.passage:not(.is-missing):hover {
+  background: color-mix(in srgb, var(--c) 21%, transparent);
+}
+.passage.is-missing {
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--c) 40%, transparent);
+}
+
+@keyframes typing-bounce {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+.typing-bounce {
+  animation: typing-bounce 1.2s ease-in-out infinite;
+}
+
+.send-button {
+  transition:
+    opacity 0.2s ease,
+    transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.4);
+}
+.send-button:not(.is-ready) {
+  transform: scale(0.88);
+}
+.send-button.is-ready:hover {
+  transform: translateY(-1px) scale(1.05);
+}
+.send-button.is-ready:active {
+  transform: scale(0.92);
+}
+
+@keyframes chat-pop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.9);
+  }
+}
+.chat-pop {
+  animation: chat-pop 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.3);
+}
+
+@keyframes badge-pop {
+  0% {
+    transform: scale(0.3);
+  }
+  60% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.badge-pop {
+  animation: badge-pop 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+@keyframes new-line-in {
+  from {
+    opacity: 0;
+    letter-spacing: 0.3em;
+  }
+}
+.chat-new-line {
+  animation: new-line-in 0.6s ease-out;
+}
+
+/* The empty chat's two bubbles bob out of step. */
+@keyframes float {
+  50% {
+    transform: translateY(-4px);
+  }
+}
+.float-a {
+  animation: float 3.2s ease-in-out infinite;
+}
+.float-b {
+  animation: float 3.2s ease-in-out 1.6s infinite;
+}
+
+/* Collapse (components/Collapse.tsx): slides open from nothing. */
+.slide-reveal {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.2s ease;
+}
+.slide-reveal[data-open="true"] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+@starting-style {
+  .slide-reveal[data-open="true"] {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+}
+
+/* Side panels: content fades in when switching, and the narrow-screen
+   drawer slides in. */
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+}
+.panel-in {
+  animation: panel-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes panel-slide-in {
+  from {
+    transform: translateX(100%);
+  }
+}
+.panel-slide-in {
+  animation: panel-slide-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+.fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .msg-in,
+  .jumbo-in,
+  .chat-pop,
+  .badge-pop,
+  .chat-new-line,
+  .float-a,
+  .float-b,
+  .panel-in,
+  .panel-slide-in,
+  .chat-ref-draft,
+  .typing-bounce {
+    animation: none;
+  }
+  .slide-reveal,
+  .msg-actions,
+  .send-button {
+    transition: none;
+  }
+}

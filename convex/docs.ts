@@ -130,7 +130,7 @@ export const deleteForever = mutation({
   handler: async (ctx, { docId }) => {
     const doc = await ctx.db.get(docId);
     if (!doc?.trashed) throw new Error("Only trashed documents can be deleted");
-    for (const table of ["versions", "aiRequests", "presence"] as const) {
+    for (const table of ["versions", "aiRequests", "presence", "chatMessages"] as const) {
       const rows = await ctx.db
         .query(table)
         .withIndex("by_doc", (q) => q.eq("docId", docId))

@@ -26,6 +26,10 @@ export const aiEffort = v.union(v.literal("low"), v.literal("medium"), v.literal
 // Optional comedy style for a request; picked from the dropdown in the Claude panel.
 export const aiComedyStyle = v.union(...COMEDY_STYLES.map((s) => v.literal(s.id)));
 
+// A passage of a document quoted in its chat. `from`/`to` are where it was
+// when quoted; clients find it again by its text as the document changes.
+export const chatQuote = v.object({ text: v.string(), from: v.number(), to: v.number() });
+
 export default defineSchema({
   users: defineTable({
     name: v.string(),
@@ -109,6 +113,23 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_doc", ["docId"]),
 
+  // The people's chat beside each document (the Chat panel).
+  chatMessages: defineTable({
+    docId: v.id("docs"),
+    authorId: v.id("users"),
+    // Empty when the message is only a quoted passage.
+    text: v.string(),
+    quote: v.optional(chatQuote),
+    // The message this one answers.
+    replyTo: v.optional(v.id("chatMessages")),
+    // Made by the sender's browser, so its optimistic copy and the saved one
+    // are the same message on screen.
+    clientId: v.optional(v.string()),
+    // Set when its author deletes it. The row stays so replies to it can say
+    // what they answered, and so "Undo" can bring it back.
+    deletedAt: v.optional(v.number()),
+  }).index("by_doc", ["docId"]),
+
   // Heartbeat from the AI worker process, so the UI can show if Claude is reachable.
   workers: defineTable({
     name: v.string(),
@@ -121,6 +142,8 @@ export default defineSchema({
     userId: v.id("users"),
     lastSeen: v.number(),
     cursor: v.optional(v.object({ anchor: v.number(), head: v.number() })),
+    // Last keystroke in the chat box, for "… is typing".
+    typingAt: v.optional(v.number()),
   })
     .index("by_doc", ["docId"])
     .index("by_session", ["sessionId"])

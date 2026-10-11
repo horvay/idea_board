@@ -16,8 +16,11 @@ export const heartbeat = mutation({
       .withIndex("by_session", (q) => q.eq("sessionId", sessionId))
       .first();
     const row = { docId, sessionId, userId, cursor, lastSeen: Date.now() };
-    if (existing) await ctx.db.replace(existing._id, row);
-    else await ctx.db.insert("presence", row);
+    // Patch rather than replace so "… is typing" in the chat survives the
+    // beat, unless this tab has moved to another document.
+    if (existing) {
+      await ctx.db.patch(existing._id, existing.docId === docId ? row : { ...row, typingAt: undefined });
+    } else await ctx.db.insert("presence", row);
   },
 });
 
@@ -51,6 +54,7 @@ export const online = query({
         name: user.name,
         color: user.color,
         cursor: row.cursor,
+        typingAt: row.typingAt,
         lastSeen: row.lastSeen,
       });
     }

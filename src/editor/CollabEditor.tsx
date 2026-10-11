@@ -10,6 +10,7 @@ import { api } from "../../convex/_generated/api";
 import { EMPTY_DOC, schemaExtensions } from "../../shared/extensions";
 import { RemoteCursors, setRemoteCursors, type RemoteCursor } from "./cursors";
 import { Highlights } from "./highlights";
+import { ChatRefs } from "./chatRefs";
 import { SlashCommand } from "./SlashCommand";
 import { Dictation } from "./dictation";
 import { SelectionMenu } from "./Menus";
@@ -83,6 +84,7 @@ function EditorInner({
       SlashCommand,
       RemoteCursors,
       Highlights,
+      ChatRefs,
       Dictation,
       syncExtension,
     ],

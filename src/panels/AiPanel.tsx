@@ -444,7 +444,7 @@ export function AiPanel({
 }
 
 /** What the microphone is doing, shown in the composer while dictating. */
-function DictationStatus({ dictation }: { dictation: Dictation }) {
+export function DictationStatus({ dictation }: { dictation: Dictation }) {
   const { phase, seconds } = dictation;
   if (phase === "idle") return null;
   return (
